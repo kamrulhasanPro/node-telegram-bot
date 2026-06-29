@@ -50,10 +50,10 @@ app.post("/webhook", (req, res) => {
 async function startWebhook() {
   try {
     console.log("Setting webhook...");
-    console.log(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+    console.log(`${WEBHOOK_URL}/webhook`);
 
     const result = await bot.setWebHook(
-      `${WEBHOOK_URL}${WEBHOOK_PATH}`
+      `${WEBHOOK_URL}/webhook`
     );
 
     console.log("setWebHook result:", result);
