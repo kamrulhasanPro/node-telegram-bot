@@ -58,9 +58,9 @@ async function startWebhook() {
 
     console.log("setWebHook result:", result);
 
-    // app.listen(PORT, () => {
-    //   console.log(`🚀 Server running on ${PORT}`);
-    // });
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on ${PORT}`);
+    });
 
   } catch (err) {
     console.error("Full error:");
