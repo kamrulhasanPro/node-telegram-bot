@@ -1,4 +1,5 @@
 require("dotenv").config();
+const express = require("express");
 const TelegramBot = require("node-telegram-bot-api");
 const { getStartMessage, getMainMenu, getText, strings } = require("./handlers/language");
 const { handleAffiliate } = require("./handlers/affiliate");
@@ -6,11 +7,74 @@ const { handleHelp } = require("./handlers/help");
 const { handleStart } = require("./handlers/start");
 const { handleSupport } = require("./handlers/support");
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-
+const bot = new TelegramBot(process.env.BOT_TOKEN);
+const app = express();
 const userLanguages = {};
 
-console.log("🤖 Bot is running...");
+const PORT = Number(process.env.PORT || 3000);
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+
+if (!process.env.BOT_TOKEN) {
+  console.error("BOT_TOKEN is not set.");
+  process.exit(1);
+}
+
+app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.send("Bot is running");
+});
+
+app.post("/webhook", (req, res) => {
+  console.log("🔥 Webhook hit!");
+  console.log(JSON.stringify(req.body, null, 2));
+
+  bot.processUpdate(req.body);
+
+  res.sendStatus(200);
+});
+
+// async function startWebhook() {
+// if (WEBHOOK_URL) {
+//   console.log(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+//   await bot.setWebHook(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+//   console.log("✅ Webhook registered");
+// } else {
+//   console.log("⚠️ WEBHOOK_URL not set. Starting server without registering webhook.");
+// }
+//   app.listen(PORT, () => {
+//     console.log(`🤖 Bot is running on port ${PORT}`);
+//   });
+// }
+
+async function startWebhook() {
+  try {
+    console.log("Setting webhook...");
+    console.log(`${WEBHOOK_URL}${WEBHOOK_PATH}`);
+
+    const result = await bot.setWebHook(
+      `${WEBHOOK_URL}${WEBHOOK_PATH}`
+    );
+
+    console.log("setWebHook result:", result);
+
+    // app.listen(PORT, () => {
+    //   console.log(`🚀 Server running on ${PORT}`);
+    // });
+
+  } catch (err) {
+    console.error("Full error:");
+    console.dir(err, { depth: null });
+  }
+}
+
+startWebhook().catch((err) => {
+  console.error(err);
+});
+// startWebhook().catch((err) => {
+//   console.error("Webhook setup error:", err.message);
+//   process.exit(1);
+// });
 
 // ─── /start command ───────────────────────────────────────────────
 bot.onText(/\/start/, async (msg) => {
@@ -20,12 +84,10 @@ bot.onText(/\/start/, async (msg) => {
 
     delete userLanguages[chatId];
 
-    // Remove old keyboard first
     await bot.sendMessage(chatId, "🌐 Choose language / ভাষা বেছে নিন:", {
       reply_markup: { remove_keyboard: true },
     });
 
-    // Show inline language picker
     await bot.sendMessage(
       chatId,
       `👋 Hello ${firstName}! / হ্যালো ${firstName}!\n\nPlease choose your language:\nঅনুগ্রহ করে আপনার ভাষা বেছে নিন:`,
@@ -53,15 +115,12 @@ bot.on("callback_query", async (query) => {
 
     await bot.answerCallbackQuery(query.id);
 
-    // ── Language selection ──
     if (data === "lang_bn" || data === "lang_en") {
       const lang = data === "lang_bn" ? "bn" : "en";
       userLanguages[chatId] = lang;
 
-      // Delete the inline picker message
-      try { await bot.deleteMessage(chatId, messageId); } catch (e) {}
+      try { await bot.deleteMessage(chatId, messageId); } catch (e) { }
 
-      // Send welcome + show persistent reply keyboard
       await bot.sendMessage(chatId, getStartMessage(lang, firstName), {
         parse_mode: "HTML",
         reply_markup: getMainMenu(lang),
@@ -69,7 +128,6 @@ bot.on("callback_query", async (query) => {
       return;
     }
 
-    // ── Change language ──
     if (data === "change_lang") {
       delete userLanguages[chatId];
       await bot.sendMessage(chatId, "🌐 Choose language / ভাষা বেছে নিন:", {
@@ -85,7 +143,6 @@ bot.on("callback_query", async (query) => {
       });
       return;
     }
-
   } catch (err) {
     console.error("callback_query error:", err.message);
   }
@@ -103,16 +160,12 @@ bot.on("message", async (msg) => {
 
     if (text === s.btn_affiliate) {
       await handleAffiliate(bot, chatId, lang);
-
     } else if (text === s.btn_howto) {
       await handleHelp(bot, chatId, lang);
-
     } else if (text === s.btn_support) {
       await handleSupport(bot, chatId, lang);
-
     } else if (text === s.btn_group) {
       await handleStart(bot, chatId, lang);
-
     } else if (text === s.btn_changelang) {
       delete userLanguages[chatId];
       await bot.sendMessage(chatId, "🌐 Choose language / ভাষা বেছে নিন:", {
@@ -126,26 +179,17 @@ bot.on("message", async (msg) => {
           ]],
         },
       });
-
     } else {
-      // Unknown text — re-show the menu
       await bot.sendMessage(chatId, getText(lang, "useButtons"), {
         parse_mode: "HTML",
         reply_markup: getMainMenu(lang),
       });
     }
-
   } catch (err) {
     console.error("message handler error:", err.message);
   }
 });
 
-// ─── Polling error handler ─────────────────────────────────────────
-bot.on("polling_error", (err) => {
-  console.error("Polling error:", err.message);
-});
-
-// ─── Global safety net ────────────────────────────────────────────
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled rejection:", err.message);
 });
