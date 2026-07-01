@@ -11,7 +11,7 @@ async function handleSupport(bot, chatId, lang) {
         [
           {
             text: lang === "bn" ? "📩 অ্যাডমিনকে মেসেজ করুন" : "📩 Message Admin",
-            url: "https://t.me/YourAdminUsername",
+            url: "https://t.me/yoursupport26",
           },
         ],
       ],

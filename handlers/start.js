@@ -17,7 +17,7 @@ async function handleStart(bot, chatId, lang) {
         [
           {
             text: lang === "bn" ? "👥 গ্রুপে যোগ দিন" : "👥 Join Group",
-            url: "https://t.me/YourGroup",
+            url: "https://t.me/bangladeshtradingsociety",
           },
         ],
       ],
